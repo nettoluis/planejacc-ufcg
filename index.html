@@ -105,28 +105,34 @@
                    'opacity-50 scale-95': draggedCourse && draggedCourse.id === course.id
                  }">
               
-              <div class="flex justify-between items-start mb-1">
-                <h3 class="font-bold text-sm leading-tight text-gray-800">{{ course.name }}</h3>
-                <span class="text-xs font-semibold bg-gray-200 px-1.5 py-0.5 rounded text-gray-700 whitespace-nowrap ml-2">{{ course.cr }} cr</span>
+              <div class="flex justify-between items-start mb-2">
+                <h3 class="font-bold text-sm leading-tight text-gray-800 pr-2">{{ course.name }}</h3>
+                
+                <!-- Botão Explícito de Status -->
+                <button @click.stop="cycleStatus(course)" 
+                        class="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-1.5 rounded shadow-sm border transition-colors hover:brightness-95 flex items-center gap-1"
+                        :class="{
+                          'bg-gray-100 text-gray-600 border-gray-300': course.status === 'Pendente', 
+                          'bg-blue-200 text-blue-800 border-blue-400': course.status === 'Planejada', 
+                          'bg-green-200 text-green-900 border-green-400': course.status === 'Concluída'
+                        }"
+                        title="Clique para mudar o status">
+                  <span v-if="course.status === 'Pendente'">⏳ Pendente</span>
+                  <span v-else-if="course.status === 'Planejada'">📅 Planejada</span>
+                  <span v-else>✅ Concluída</span>
+                </button>
               </div>
+
               <div class="text-xs text-gray-500 mb-2">
-                {{ course.tipo }} | CH: {{ course.ch }}
+                {{ course.tipo }} | {{ course.cr }} cr | CH: {{ course.ch }}
               </div>
               
-              <!-- Card Footer: Drag Indicator & Status Button -->
-              <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-200/50">
-                <span class="text-xs text-gray-400 pointer-events-none tracking-widest">⣿ Arrastar</span>
-                
-                <button @click.stop="cycleStatus(course)" 
-                        class="text-xs font-bold px-2 py-1 rounded transition-colors hover:brightness-95" 
-                        :class="{
-                          'bg-gray-200 text-gray-600': course.status === 'Pendente', 
-                          'bg-blue-200 text-blue-800': course.status === 'Planejada', 
-                          'bg-green-200 text-green-800': course.status === 'Concluída'
-                        }"
-                        title="Clique para alternar o status">
-                  {{ course.status }}
-                </button>
+              <!-- Card Footer: Drag Indicator -->
+              <div class="flex justify-start items-center mt-2 pt-2 border-t border-gray-200/50">
+                <span class="text-xs text-gray-400 pointer-events-none tracking-widest flex items-center gap-1">
+                  <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                  Arrastar
+                </span>
               </div>
             </div>
           </div>
@@ -435,7 +441,6 @@
         const checkMove = (course, targetSem) => {
           const errors = [];
 
-          // 1. Verifica se os pré-requisitos estão em períodos anteriores (req.customSem < targetSem)
           if (course.prereqs && course.prereqs.length > 0) {
             for (const reqId of course.prereqs) {
               const req = courses.find(c => c.id === reqId);
@@ -445,7 +450,6 @@
             }
           }
 
-          // 2. Verifica se os co-requisitos estão no máximo no mesmo período (req.customSem <= targetSem)
           if (course.coreqs && course.coreqs.length > 0) {
             for (const reqId of course.coreqs) {
               const req = courses.find(c => c.id === reqId);
@@ -455,7 +459,6 @@
             }
           }
 
-          // 3. Verifica se arrastar esta disciplina quebra alguma outra que já dependa dela
           for (const other of courses) {
             if (other.prereqs && other.prereqs.includes(course.id)) {
               if (other.customSem <= targetSem) {
@@ -482,10 +485,9 @@
           
           if (course.customSem === targetSem) {
             draggedCourse.value = null;
-            return; // Dropped na mesma coluna, ignora
+            return; 
           }
 
-          // Validar regras de pré/co-requisitos
           const errors = checkMove(course, targetSem);
           
           if (errors.length > 0) {
@@ -493,7 +495,6 @@
             errors.forEach(e => msg += `- ${e}\n`);
             alert(msg);
           } else {
-            // Se passou na validação, move a disciplina
             course.customSem = targetSem;
           }
           
