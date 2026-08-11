@@ -236,6 +236,7 @@
   <script>
     // --- DADOS DO CURRÍCULO 2023 ---
     const COURSES = [
+      // ---- OBRIGATÓRIAS ----
       {id:"1305219", name:"Direito e Cidadania", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
       {id:"1411311", name:"Fund. de Matemática p/ C. da Computação I", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
       {id:"1411174", name:"Introdução à Computação", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
@@ -273,15 +274,57 @@
       {id:"1411348", name:"Projeto em Computação II", cr:4, ch:60, sem:9, tipo:"Obrigatória"},
       {id:"1411318", name:"Trabalho de Conclusão de Curso", cr:4, ch:60, sem:9, tipo:"TCC"},
       
-      // Optativas Principais (Apenas exemplos iniciais inclusos no design p/ o periodo livre "10")
-      {id:"1411198", name:"Adm. Sist. Gerenc. de BD", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      // ---- OPTATIVAS COMPLETAS ----
+      {id:"1411198", name:"Adm. de Sist. Gerenc. de Banco de Dados", cr:4, ch:60, sem:null, tipo:"Optativa"},
       {id:"1411320", name:"Administração de Sistemas", cr:4, ch:60, sem:null, tipo:"Optativa"},
       {id:"1411321", name:"Algoritmos Avançados I", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411322", name:"Algoritmos Avançados II", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411323", name:"Algoritmos Avançados III", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411324", name:"Algoritmos Avançados IV", cr:4, ch:60, sem:null, tipo:"Optativa"},
       {id:"1411325", name:"Arquitetura de Software", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411197", name:"Aval. de Desempenho de Sist. Discretos", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411194", name:"Banco de Dados II", cr:4, ch:60, sem:null, tipo:"Optativa"},
       {id:"1411364", name:"Ciência de Dados Descritiva", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411365", name:"Ciência de Dados Preditiva", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411366", name:"Computação e Música", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411200", name:"Computação Gráfica", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411327", name:"Des. Soft. Integ. Oper. Infraest.", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411328", name:"Economia de T.I.", cr:4, ch:60, sem:null, tipo:"Optativa"},
       {id:"1411367", name:"Empreendedorismo e Inovação", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411330", name:"Gerência de Redes", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411368", name:"Gestão de Projetos", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411369", name:"Governança da Internet", cr:4, ch:60, sem:null, tipo:"Optativa"},
       {id:"1411370", name:"Habilidades Socioemocionais I", cr:2, ch:30, sem:null, tipo:"Optativa"},
-      {id:"1411377", name:"Programação para a Web I", cr:4, ch:60, sem:null, tipo:"Optativa"}
+      {id:"1411371", name:"Habilidades Socioemocionais II", cr:2, ch:30, sem:null, tipo:"Optativa"},
+      {id:"1411345", name:"Informática e Sociedade", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1307150", name:"Inglês", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411331", name:"Interconexão de Redes de Comp.", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411372", name:"Interface Humano-Computador", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411373", name:"Jogos Digitais", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1307332", name:"Libras", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411188", name:"Métodos e Software Numéricos", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411332", name:"Métodos Formais", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411213", name:"Otimização", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411374", name:"Percepção Computacional", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411333", name:"Prática de Ensino de Computação I", cr:2, ch:30, sem:null, tipo:"Optativa"},
+      {id:"1411334", name:"Prática de Ensino de Computação II", cr:2, ch:30, sem:null, tipo:"Optativa"},
+      {id:"1411375", name:"Processamento de Linguagem Natural", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411336", name:"Programação em Banco de Dados", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411376", name:"Programação Funcional", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411377", name:"Programação para a Web I", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411378", name:"Programação para a Web II", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411217", name:"Projeto de Redes de Computadores", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411379", name:"Projeto de Sistemas Digitais", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411337", name:"Provis. e Oper. de Infraestruturas", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411338", name:"Reconhec. de Padrões e Redes Neurais", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411339", name:"Recup. de Informação e Busca na Web", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411340", name:"Segurança de Sistemas", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411342", name:"Sistemas de Apoio à Decisão", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411221", name:"Sistemas de Informações Geográficas", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411222", name:"Sistemas Distribuídos", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411380", name:"Transformação Digital", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411343", name:"Verificação e Validação de Software", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411381", name:"Visualização de Dados", cr:4, ch:60, sem:null, tipo:"Optativa"}
     ];
 
     const ACTIVITIES = [
