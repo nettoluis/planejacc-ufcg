@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Meu Fluxograma - Ciência da Computação UFCG</title>
+  <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom Scrollbar for horizontal board */
+    .board-container {
+      overflow-x: auto;
+      display: flex;
+      gap: 1rem;
+      padding-bottom: 1rem;
+      align-items: flex-start;
+    }
+    .semester-col {
+      min-width: 320px;
+      max-width: 320px;
+      background: #f3f4f6;
+      border-radius: 0.5rem;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800 font-sans">
+  <div id="app" class="min-h-screen flex flex-col">
+    <!-- Header/Nav -->
+    <header class="bg-blue-900 text-white shadow-md">
+      <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between">
+        <div class="flex items-center gap-3">
+          <h1 class="text-2xl font-bold">CC UFCG - Meu Currículo</h1>
+        </div>
+        <nav class="mt-4 md:mt-0 flex gap-2">
+          <button @click="tab = 'fluxograma'" 
+                  :class="['px-4 py-2 rounded font-semibold transition', tab === 'fluxograma' ? 'bg-white text-blue-900' : 'hover:bg-blue-800']">
+            Fluxograma
+          </button>
+          <button @click="tab = 'horas'" 
+                  :class="['px-4 py-2 rounded font-semibold transition', tab === 'horas' ? 'bg-white text-blue-900' : 'hover:bg-blue-800']">
+            Horas Complementares
+          </button>
+        </nav>
+      </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-1 max-w-full mx-auto p-4 w-full">
+      
+      <!-- TAB 1: FLUXOGRAMA -->
+      <div v-if="tab === 'fluxograma'" class="h-full flex flex-col">
+        <div class="mb-4 flex flex-wrap gap-4 items-center justify-between bg-white p-4 rounded shadow">
+          <div class="flex gap-4 items-center">
+            <span class="font-semibold text-lg">Legenda:</span>
+            <span class="px-3 py-1 bg-white border border-gray-300 rounded text-sm text-gray-600">Pendente</span>
+            <span class="px-3 py-1 bg-blue-100 border border-blue-300 rounded text-sm text-blue-800">Planejada</span>
+            <span class="px-3 py-1 bg-green-100 border border-green-300 rounded text-sm text-green-800">Concluída</span>
+          </div>
+          <div class="flex items-center gap-4">
+            <div class="text-sm">
+              <strong>Créditos Obrigatórios:</strong> {{ stats.obrigatorio }} / 140
+            </div>
+            <div class="text-sm">
+              <strong>Créditos Optativos:</strong> {{ stats.optativo }} / 44
+            </div>
+            <button @click="addSemester" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold shadow">
+              + Adicionar Período
+            </button>
+          </div>
+        </div>
+
+        <div class="board-container h-full">
+          <div v-for="sem in maxSemesters" :key="sem" class="semester-col shadow-sm border border-gray-200">
+            <div class="flex justify-between items-center mb-2">
+              <h2 class="font-bold text-lg text-gray-700">
+                {{ sem === 10 ? 'Optativas / Sem Período' : sem + 'º Período' }}
+              </h2>
+            </div>
+            
+            <!-- Course Card -->
+            <div v-for="course in getCoursesBySem(sem)" :key="course.id" 
+                 class="relative p-3 rounded shadow-sm border transition-colors duration-200 cursor-pointer"
+                 :class="{
+                   'bg-white border-gray-300': course.status === 'Pendente',
+                   'bg-blue-50 border-blue-300': course.status === 'Planejada',
+                   'bg-green-50 border-green-300': course.status === 'Concluída'
+                 }">
+              <div class="flex justify-between items-start mb-1" @click="cycleStatus(course)">
+                <h3 class="font-bold text-sm leading-tight text-gray-800">{{ course.name }}</h3>
+                <span class="text-xs font-semibold bg-gray-200 px-1.5 py-0.5 rounded text-gray-700">{{ course.cr }} cr</span>
+              </div>
+              <div class="text-xs text-gray-500 mb-2">
+                {{ course.tipo }} | CH: {{ course.ch }}
+              </div>
+              
+              <!-- Movers -->
+              <div class="flex justify-between items-center mt-2 pt-2 border-t border-gray-200/50">
+                <button @click.stop="moveCourse(course, -1)" :disabled="course.customSem <= 1" class="text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30">
+                  ◀ Anterior
+                </button>
+                <div class="text-xs font-medium" 
+                     :class="{'text-gray-400': course.status === 'Pendente', 'text-blue-600': course.status === 'Planejada', 'text-green-600': course.status === 'Concluída'}">
+                  {{ course.status }}
+                </div>
+                <button @click.stop="moveCourse(course, 1)" :disabled="course.customSem >= maxSemesters" class="text-xs text-gray-500 hover:text-blue-600 disabled:opacity-30">
+                  Próximo ▶
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 2: HORAS COMPLEMENTARES -->
+      <div v-if="tab === 'horas'" class="max-w-4xl mx-auto flex flex-col gap-6">
+        
+        <!-- Dashboard / Progresso -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="bg-white p-6 rounded shadow border-t-4 border-blue-500">
+            <h3 class="font-bold text-lg mb-2">Extensão (Mín. 22 Créditos)</h3>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+              <div class="bg-blue-500 h-4 rounded-full transition-all" :style="{ width: Math.min((extensaoCredits / 22) * 100, 100) + '%' }"></div>
+            </div>
+            <p class="text-sm text-gray-600 font-semibold">{{ extensaoCredits }} / 22 créditos acumulados</p>
+            <p class="text-xs text-gray-500 mt-1">Faltam: {{ Math.max(22 - extensaoCredits, 0) }}</p>
+          </div>
+          
+          <div class="bg-white p-6 rounded shadow border-t-4 border-green-500">
+            <h3 class="font-bold text-lg mb-2">Flexíveis (Mín. 8 Créditos)</h3>
+            <div class="w-full bg-gray-200 rounded-full h-4 mb-2">
+              <div class="bg-green-500 h-4 rounded-full transition-all" :style="{ width: Math.min((flexivelCredits / 8) * 100, 100) + '%' }"></div>
+            </div>
+            <p class="text-sm text-gray-600 font-semibold">{{ flexivelCredits }} / 8 créditos acumulados</p>
+            <p class="text-xs text-gray-500 mt-1">Faltam: {{ Math.max(8 - flexivelCredits, 0) }}</p>
+          </div>
+        </div>
+
+        <!-- Add Activity Form -->
+        <div class="bg-white p-6 rounded shadow">
+          <h2 class="text-xl font-bold text-gray-800 mb-4">Adicionar Atividade</h2>
+          <form @submit.prevent="addActivity" class="flex flex-col gap-4">
+            <div>
+              <label class="block text-sm font-semibold text-gray-700 mb-1">Selecione a Atividade</label>
+              <select v-model="form.activityId" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:border-blue-500" required>
+                <option disabled value="">-- Escolha uma atividade --</option>
+                <option v-for="act in ACTIVITIES" :key="act.id" :value="act.id">
+                  [{{ act.categoria.toUpperCase() }}] {{ act.desc }}
+                </option>
+              </select>
+            </div>
+            
+            <div v-if="selectedActivity" class="bg-gray-50 p-4 rounded border border-gray-200 text-sm text-gray-700">
+              <p><strong>Regra:</strong> {{ selectedActivity.doc }}</p>
+              <p v-if="selectedActivity.obs" class="mt-1 text-red-600"><strong>Atenção:</strong> {{ selectedActivity.obs }}</p>
+            </div>
+
+            <div v-if="selectedActivity" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <!-- Input para "horas" -->
+              <div v-if="selectedActivity.tipoCalc === 'horas'">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Carga Horária (horas)</label>
+                <input type="number" v-model.number="form.amount" min="1" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:border-blue-500" required>
+              </div>
+              
+              <!-- Input para "fixo" -->
+              <div v-if="selectedActivity.tipoCalc === 'fixo'">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Quantidade de {{ selectedActivity.unidadeLabel }}</label>
+                <input type="number" v-model.number="form.amount" min="1" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:border-blue-500" required>
+              </div>
+              
+              <!-- Input para "custom" -->
+              <div v-if="selectedActivity.tipoCalc === 'custom'">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Créditos concedidos pelo colegiado/comitê</label>
+                <input type="number" v-model.number="form.amount" min="1" :max="selectedActivity.maxCreditos" class="w-full border border-gray-300 rounded p-2 focus:outline-none focus:border-blue-500" required>
+              </div>
+
+              <!-- Escolha de categoria caso seja atividade 13 (Outras) -->
+              <div v-if="selectedActivity.id === 13">
+                <label class="block text-sm font-semibold text-gray-700 mb-1">Enquadrar como:</label>
+                <select v-model="form.customCategory" class="w-full border border-gray-300 rounded p-2" required>
+                  <option value="extensao">Extensão</option>
+                  <option value="flexivel">Complementar Flexível</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="flex justify-end">
+              <button type="submit" :disabled="!selectedActivity" class="bg-blue-600 text-white px-6 py-2 rounded font-semibold hover:bg-blue-700 disabled:opacity-50">
+                Registrar Atividade
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Activities List -->
+        <div class="bg-white rounded shadow overflow-hidden">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Atividade</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Categoria</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Valor Registrado</th>
+                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Créditos Calculados</th>
+                <th class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Ação</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-if="myActivities.length === 0">
+                <td colspan="5" class="px-6 py-4 text-center text-sm text-gray-500">Nenhuma atividade registrada ainda.</td>
+              </tr>
+              <tr v-for="(act, index) in myActivities" :key="index">
+                <td class="px-6 py-4 text-sm text-gray-800">{{ getActName(act.id) }}</td>
+                <td class="px-6 py-4 text-sm text-gray-600 capitalize">
+                  <span :class="{'text-blue-600 font-semibold': act.category === 'extensao', 'text-green-600 font-semibold': act.category === 'flexivel'}">
+                    {{ act.category }}
+                  </span>
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-600">
+                  {{ act.amount }} {{ getAmountLabel(act.id) }}
+                </td>
+                <td class="px-6 py-4 text-sm text-gray-800 font-bold">{{ act.computedCredits }} cr</td>
+                <td class="px-6 py-4 text-right text-sm">
+                  <button @click="removeActivity(index)" class="text-red-500 hover:text-red-700 font-semibold">Remover</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    // --- DADOS DO CURRÍCULO 2023 ---
+    const COURSES = [
+      {id:"1305219", name:"Direito e Cidadania", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
+      {id:"1411311", name:"Fund. de Matemática p/ C. da Computação I", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
+      {id:"1411174", name:"Introdução à Computação", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
+      {id:"1411180", name:"Laboratório de Programação I", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
+      {id:"1411167", name:"Programação I", cr:4, ch:60, sem:1, tipo:"Obrigatória"},
+      {id:"1109126", name:"Cálculo Diferencial e Integral I", cr:4, ch:60, sem:2, tipo:"Obrigatória"},
+      {id:"1303021", name:"Economia", cr:4, ch:60, sem:2, tipo:"Obrigatória"},
+      {id:"1411312", name:"Fund. de Matemática p/ C. da Computação II", cr:4, ch:60, sem:2, tipo:"Obrigatória"},
+      {id:"1411181", name:"Laboratório de Programação II", cr:4, ch:60, sem:2, tipo:"Obrigatória"},
+      {id:"1411168", name:"Programação II", cr:4, ch:60, sem:2, tipo:"Obrigatória"},
+      {id:"1109049", name:"Álgebra Linear I", cr:4, ch:60, sem:3, tipo:"Obrigatória"},
+      {id:"1109131", name:"Cálculo Diferencial e Integral II", cr:4, ch:60, sem:3, tipo:"Obrigatória"},
+      {id:"1411172", name:"Estruturas de Dados e Algoritmos", cr:4, ch:60, sem:3, tipo:"Obrigatória"},
+      {id:"1411179", name:"Lab. de Estruturas de Dados e Algoritmos", cr:4, ch:60, sem:3, tipo:"Obrigatória"},
+      {id:"1411307", name:"Lógica para Computação", cr:4, ch:60, sem:3, tipo:"Obrigatória"},
+      {id:"1411193", name:"Banco de Dados I", cr:4, ch:60, sem:4, tipo:"Obrigatória"},
+      {id:"1114129", name:"Introdução à Probabilidade", cr:4, ch:60, sem:4, tipo:"Obrigatória"},
+      {id:"1411310", name:"Organização e Arquit. de Computadores", cr:4, ch:60, sem:4, tipo:"Obrigatória"},
+      {id:"1411309", name:"Paradigmas de Linguagem de Programação", cr:4, ch:60, sem:4, tipo:"Obrigatória"},
+      {id:"1411171", name:"Teoria da Computação", cr:4, ch:60, sem:4, tipo:"Obrigatória"},
+      {id:"1411304", name:"Teoria dos Grafos", cr:4, ch:60, sem:4, tipo:"Obrigatória"},
+      {id:"1411314", name:"Engenharia de Software", cr:4, ch:60, sem:5, tipo:"Obrigatória"},
+      {id:"1114222", name:"Estatística Aplicada", cr:4, ch:60, sem:5, tipo:"Obrigatória"},
+      {id:"1411316", name:"Inteligência Artificial", cr:4, ch:60, sem:5, tipo:"Obrigatória"},
+      {id:"1411308", name:"Projeto de Software", cr:4, ch:60, sem:5, tipo:"Obrigatória"},
+      {id:"1411190", name:"Redes de Computadores", cr:4, ch:60, sem:5, tipo:"Obrigatória"},
+      {id:"1411192", name:"Sistemas Operacionais", cr:4, ch:60, sem:5, tipo:"Obrigatória"},
+      {id:"1411313", name:"Análise de Sistemas", cr:4, ch:60, sem:6, tipo:"Obrigatória"},
+      {id:"1411187", name:"Análise e Técnica de Algoritmos", cr:4, ch:60, sem:6, tipo:"Obrigatória"},
+      {id:"1411315", name:"Programação Concorrente", cr:4, ch:60, sem:6, tipo:"Obrigatória"},
+      {id:"1411189", name:"Compiladores", cr:4, ch:60, sem:7, tipo:"Obrigatória"},
+      {id:"1411383", name:"Metodologia Científica", cr:4, ch:60, sem:7, tipo:"Obrigatória"},
+      {id:"1307169", name:"Língua Portuguesa", cr:4, ch:60, sem:8, tipo:"Obrigatória"},
+      {id:"1411185", name:"Projeto em Computação I", cr:4, ch:60, sem:8, tipo:"Obrigatória"},
+      {id:"1411348", name:"Projeto em Computação II", cr:4, ch:60, sem:9, tipo:"Obrigatória"},
+      {id:"1411318", name:"Trabalho de Conclusão de Curso", cr:4, ch:60, sem:9, tipo:"TCC"},
+      
+      // Optativas Principais (Apenas exemplos iniciais inclusos no design p/ o periodo livre "10")
+      {id:"1411198", name:"Adm. Sist. Gerenc. de BD", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411320", name:"Administração de Sistemas", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411321", name:"Algoritmos Avançados I", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411325", name:"Arquitetura de Software", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411364", name:"Ciência de Dados Descritiva", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411367", name:"Empreendedorismo e Inovação", cr:4, ch:60, sem:null, tipo:"Optativa"},
+      {id:"1411370", name:"Habilidades Socioemocionais I", cr:2, ch:30, sem:null, tipo:"Optativa"},
+      {id:"1411377", name:"Programação para a Web I", cr:4, ch:60, sem:null, tipo:"Optativa"}
+    ];
+
+    const ACTIVITIES = [
+      {id:1, categoria:"extensao", desc:"Participação em programas ou projetos de extensão", tipoCalc:"custom", unidadeMinima:"A definir pelo Comitê", maxCreditos:22, doc:"Declaração emitida pela Pró-Reitoria competente."},
+      {id:2, categoria:"extensao", desc:"Preparação e execução de cursos e oficinas de extensão", tipoCalc:"horas", creditosPor15h:1, maxCreditos:22, doc:"Declaração emitida pelo Comitê Interno de Extensão da UASC."},
+      {id:3, categoria:"extensao", desc:"Organização de eventos de extensão", tipoCalc:"horas", creditosPor15h:1, maxCreditos:8, doc:"Declaração emitida pelo Comitê Interno de Extensão da UASC."},
+      {id:4, categoria:"extensao", desc:"Participação em equipe de execução de serviços de assessoria técnica, P&D e inovação", tipoCalc:"horas", creditosPor15h:1, maxCreditos:22, doc:"Declaração emitida pelo Comitê Interno de Extensão da UASC."},
+      {id:5, categoria:"extensao", desc:"Atividade de extensão executada no âmbito do PET", tipoCalc:"horas", creditosPor15h:1, maxCreditos:22, doc:"Declaração emitida pelo Comitê Interno de Extensão da UASC."},
+      {id:6, categoria:"flexivel", desc:"Participação em pesquisa de iniciação científica (PIBIC, PIBITI, etc)", tipoCalc:"fixo", unidadeLabel:"projeto(s) de 1 ano concluído(s)", creditosPorUnidade:8, maxCreditos:8, doc:"Declaração emitida pela Pró-Reitoria competente."},
+      {id:7, categoria:"flexivel", desc:"Participação em projeto de pesquisa e inovação (UFCG)", tipoCalc:"horas", creditosPor15h:1, maxCreditos:8, doc:"Declaração emitida pela Coordenação de Pesquisa e Extensão da UASC."},
+      {id:8, categoria:"flexivel", desc:"Participação em monitoria reconhecida (UFCG)", tipoCalc:"fixo", unidadeLabel:"semestre(s) letivo(s)", creditosPorUnidade:4, maxCreditos:8, doc:"Declaração emitida pela Pró-Reitoria competente."},
+      {id:9, categoria:"flexivel", desc:"Realização de estágio não obrigatório", tipoCalc:"horas", creditosPor15h:1, maxCreditos:8, minHoras:120, doc:"Termo de celebração do estágio.", obs:"Carga horária total mínima de 120h para pontuar."},
+      {id:10, categoria:"flexivel", desc:"Atividades profissionais na área de Computação", tipoCalc:"horas", creditosPor15h:1, maxCreditos:8, minHoras:120, doc:"Declaração do empregador.", obs:"Válido apenas após 80 créditos obrigatórios. Min 120h."},
+      {id:11, categoria:"flexivel", desc:"Representação estudantil (CA, Colegiado, DCE)", tipoCalc:"fixo", unidadeLabel:"ano(s) de mandato", creditosPorUnidade:2, maxCreditos:2, doc:"Ata de eleição ou portaria."},
+      {id:12, categoria:"flexivel", desc:"Atividade flexível executada no âmbito do PET", tipoCalc:"horas", creditosPor15h:1, maxCreditos:8, doc:"Certificado do Tutor do PET."},
+      {id:13, categoria:"outras", desc:"Outras atividades (definidas pelo Colegiado)", tipoCalc:"custom", maxCreditos:22, doc:"A definir pelo Colegiado.", obs:"Pode ser enquadrada como Extensão ou Flexível."}
+    ];
+
+    const { createApp, ref, computed, reactive, onMounted } = Vue;
+
+    createApp({
+      setup() {
+        const tab = ref('fluxograma');
+        
+        // Estado Cursos
+        const courses = reactive(COURSES.map(c => ({
+          ...c,
+          status: 'Pendente', 
+          customSem: c.sem || 10 // Coloca optativas no "10º semestre" como repositório livre
+        })));
+        const maxSemesters = ref(10);
+
+        // Estado Horas Complementares
+        const myActivities = reactive([]);
+        const form = reactive({
+          activityId: '',
+          amount: 1,
+          customCategory: 'extensao'
+        });
+
+        // Computed Cursos
+        const getCoursesBySem = (sem) => {
+          return courses.filter(c => c.customSem === sem);
+        };
+
+        const stats = computed(() => {
+          let req = 0, opt = 0;
+          courses.forEach(c => {
+            if (c.status === 'Concluída') {
+              if (c.tipo === 'Obrigatória' || c.tipo === 'TCC') req += c.cr;
+              if (c.tipo === 'Optativa') opt += c.cr;
+            }
+          });
+          return { obrigatorio: req, optativo: opt };
+        });
+
+        const cycleStatus = (course) => {
+          const statuses = ['Pendente', 'Planejada', 'Concluída'];
+          let idx = statuses.indexOf(course.status);
+          course.status = statuses[(idx + 1) % statuses.length];
+        };
+
+        const moveCourse = (course, direction) => {
+          let newSem = course.customSem + direction;
+          if (newSem > 0 && newSem <= maxSemesters.value) {
+            course.customSem = newSem;
+          }
+        };
+
+        const addSemester = () => {
+          maxSemesters.value++;
+        };
+
+        // Computed Atividades
+        const selectedActivity = computed(() => {
+          if (!form.activityId) return null;
+          return ACTIVITIES.find(a => a.id === form.activityId);
+        });
+
+        const extensaoCredits = computed(() => {
+          let total = 0;
+          myActivities.forEach(act => {
+            if (act.category === 'extensao') total += act.computedCredits;
+          });
+          return Math.min(total, 22);
+        });
+
+        const flexivelCredits = computed(() => {
+          let total = 0;
+          myActivities.forEach(act => {
+            if (act.category === 'flexivel') total += act.computedCredits;
+          });
+          return Math.min(total, 8);
+        });
+
+        const addActivity = () => {
+          if (!selectedActivity.value) return;
+          const actDef = selectedActivity.value;
+          
+          let computedCr = 0;
+          const amt = form.amount;
+
+          // Regras de bloqueio de minHoras
+          if (actDef.minHoras && amt < actDef.minHoras) {
+            alert(`Atenção: Esta atividade exige um mínimo de ${actDef.minHoras} horas para começar a pontuar.`);
+            return;
+          }
+
+          if (actDef.tipoCalc === 'horas') {
+            computedCr = Math.floor(amt / 15) * actDef.creditosPor15h;
+          } else if (actDef.tipoCalc === 'fixo') {
+            computedCr = amt * actDef.creditosPorUnidade;
+          } else if (actDef.tipoCalc === 'custom') {
+            computedCr = amt;
+          }
+
+          // Cap
+          computedCr = Math.min(computedCr, actDef.maxCreditos);
+
+          myActivities.push({
+            id: actDef.id,
+            category: actDef.id === 13 ? form.customCategory : actDef.categoria,
+            amount: amt,
+            computedCredits: computedCr
+          });
+
+          // Reseta Form
+          form.activityId = '';
+          form.amount = 1;
+        };
+
+        const removeActivity = (index) => {
+          myActivities.splice(index, 1);
+        };
+
+        const getActName = (id) => ACTIVITIES.find(a => a.id === id)?.desc;
+        const getAmountLabel = (id) => {
+          const act = ACTIVITIES.find(a => a.id === id);
+          if (act.tipoCalc === 'horas') return 'horas';
+          if (act.tipoCalc === 'fixo') return act.unidadeLabel;
+          return 'créditos atribuídos';
+        };
+
+        return {
+          tab, courses, maxSemesters, stats, form, myActivities, ACTIVITIES,
+          getCoursesBySem, cycleStatus, moveCourse, addSemester, selectedActivity,
+          addActivity, removeActivity, getActName, getAmountLabel,
+          extensaoCredits, flexivelCredits
+        };
+      }
+    }).mount('#app');
+  </script>
+</body>
+</html>
