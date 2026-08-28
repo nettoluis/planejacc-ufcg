@@ -3,6 +3,17 @@ import { loadCourses } from '../data/courses.js';
 import { normalizeString } from '../util/normalize.js';
 import { useModal } from './useModal.js';
 
+const MAX_CREDITS_PER_SEMESTER = 24;
+
+// The 10th column doubles as the default landing spot for every not-yet
+// scheduled elective (see customSem fallback below) and is only a real,
+// credit-capped academic term once the user has moved past it by adding
+// more periods — matching the same condition the UI uses for its
+// "Optativas / Repositório" label.
+function isCreditCapped(targetSem, maxSemesters) {
+  return !(targetSem === 10 && maxSemesters === 10);
+}
+
 export function useCourses() {
   const { showModal } = useModal();
 
@@ -167,6 +178,19 @@ export function useCourses() {
       if (other.coreqs && other.coreqs.includes(course.id) && other.customSem < targetSem) {
         errors.push(
           `A disciplina "${other.name}" (que está no ${other.customSem}º período) exige que esta seja cursada junto ou antes dela.`
+        );
+      }
+    }
+
+    if (isCreditCapped(targetSem, maxSemesters.value)) {
+      const currentLoad = courses
+        .filter((c) => c.customSem === targetSem && c.id !== course.id)
+        .reduce((sum, c) => sum + c.cr, 0);
+      const projectedLoad = currentLoad + course.cr;
+
+      if (projectedLoad > MAX_CREDITS_PER_SEMESTER) {
+        errors.push(
+          `Este período ficaria com ${projectedLoad} créditos (máximo de ${MAX_CREDITS_PER_SEMESTER}).`
         );
       }
     }
