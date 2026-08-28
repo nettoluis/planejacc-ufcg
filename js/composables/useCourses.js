@@ -1,18 +1,8 @@
-const { reactive, ref, computed, onMounted } = Vue;
+const { reactive, ref, computed, onMounted, watch } = Vue;
 import { loadCourses } from '../data/courses.js';
 import { normalizeString } from '../util/normalize.js';
 import { useModal } from './useModal.js';
-
-const MAX_CREDITS_PER_SEMESTER = 24;
-
-// The 10th column doubles as the default landing spot for every not-yet
-// scheduled elective (see customSem fallback below) and is only a real,
-// credit-capped academic term once the user has moved past it by adding
-// more periods — matching the same condition the UI uses for its
-// "Optativas / Repositório" label.
-function isCreditCapped(targetSem, maxSemesters) {
-  return !(targetSem === 10 && maxSemesters === 10);
-}
+import { loadSession, saveSession } from '../data/session-storage.js';
 
 export function useCourses() {
   const { showModal } = useModal();
@@ -32,10 +22,39 @@ export function useCourses() {
   const detailsCourse = ref(null);
 
   onMounted(async () => {
+    const saved = loadSession();
     const { courses: loaded, offline } = await loadCourses();
+
+    if (saved?.maxSemesters) {
+      maxSemesters.value = Math.max(10, saved.maxSemesters);
+    }
+
+    const overrides = saved?.courseOverrides || {};
+    loaded.forEach((c) => {
+      const o = overrides[c.id];
+      if (o) {
+        c.status = o.status;
+        c.customSem = o.customSem;
+      }
+    });
+
     courses.push(...loaded);
     fetchError.value = offline;
     isLoading.value = false;
+
+    // Autosaves progress (status, semester placement, added periods) to
+    // this browser so it survives a reload — no explicit save action.
+    watch(
+      [courses, maxSemesters],
+      () => {
+        const courseOverrides = {};
+        courses.forEach((c) => {
+          courseOverrides[c.id] = { status: c.status, customSem: c.customSem };
+        });
+        saveSession({ courseOverrides, maxSemesters: maxSemesters.value });
+      },
+      { deep: true }
+    );
   });
 
   const getCoursesBySem = (sem) => {
@@ -59,7 +78,13 @@ export function useCourses() {
         }
       }
 
-      if (filterTrilha.value && !(c.trilhas || []).includes(filterTrilha.value)) {
+      // The trilha filter only narrows down electives — obrigatórias,
+      // complementar hours and TCC always stay visible regardless of trilha.
+      if (
+        filterTrilha.value &&
+        c.tipo === 'Optativa' &&
+        !(c.trilhas || []).includes(filterTrilha.value)
+      ) {
         return false;
       }
 
@@ -69,7 +94,9 @@ export function useCourses() {
 
   const availableTrilhas = computed(() => {
     const set = new Set();
-    courses.forEach((c) => (c.trilhas || []).forEach((t) => set.add(t)));
+    courses
+      .filter((c) => c.tipo === 'Optativa')
+      .forEach((c) => (c.trilhas || []).forEach((t) => set.add(t)));
     return [...set].sort();
   });
 
@@ -178,19 +205,6 @@ export function useCourses() {
       if (other.coreqs && other.coreqs.includes(course.id) && other.customSem < targetSem) {
         errors.push(
           `A disciplina "${other.name}" (que está no ${other.customSem}º período) exige que esta seja cursada junto ou antes dela.`
-        );
-      }
-    }
-
-    if (isCreditCapped(targetSem, maxSemesters.value)) {
-      const currentLoad = courses
-        .filter((c) => c.customSem === targetSem && c.id !== course.id)
-        .reduce((sum, c) => sum + c.cr, 0);
-      const projectedLoad = currentLoad + course.cr;
-
-      if (projectedLoad > MAX_CREDITS_PER_SEMESTER) {
-        errors.push(
-          `Este período ficaria com ${projectedLoad} créditos (máximo de ${MAX_CREDITS_PER_SEMESTER}).`
         );
       }
     }

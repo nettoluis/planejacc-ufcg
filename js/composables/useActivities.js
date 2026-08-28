@@ -1,6 +1,7 @@
-const { reactive, ref, computed, onMounted } = Vue;
+const { reactive, ref, computed, onMounted, watch } = Vue;
 import { loadActivities } from '../data/activities.js';
 import { useModal } from './useModal.js';
+import { loadSession, saveSession } from '../data/session-storage.js';
 
 export function useActivities() {
   const { showModal } = useModal();
@@ -17,10 +18,25 @@ export function useActivities() {
   });
 
   onMounted(async () => {
+    const saved = loadSession();
     const { activities: loaded, offline } = await loadActivities();
     activities.push(...loaded);
     activitiesOffline.value = offline;
     activitiesLoading.value = false;
+
+    if (saved?.myActivities?.length) {
+      myActivities.push(...saved.myActivities);
+    }
+
+    // Autosaves registered activities to this browser so they survive a
+    // reload — no explicit save action.
+    watch(
+      myActivities,
+      () => {
+        saveSession({ myActivities: myActivities.map((a) => ({ ...a })) });
+      },
+      { deep: true }
+    );
   });
 
   const selectedActivity = computed(() => {
