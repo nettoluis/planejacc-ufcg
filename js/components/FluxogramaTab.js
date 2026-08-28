@@ -1,8 +1,9 @@
 import { useCourses } from '../composables/useCourses.js';
 import { CourseCard } from './CourseCard.js';
+import { CourseDetailsModal } from './CourseDetailsModal.js';
 
 export const FluxogramaTab = {
-  components: { CourseCard },
+  components: { CourseCard, CourseDetailsModal },
   setup() {
     return useCourses();
   },
@@ -26,7 +27,6 @@ export const FluxogramaTab = {
         <div class="flex gap-4 items-center">
           <span class="font-semibold text-lg">Legenda:</span>
           <span class="px-3 py-1 bg-white border border-gray-300 rounded text-sm text-gray-600">Pendente</span>
-          <span class="px-3 py-1 bg-blue-100 border border-blue-300 rounded text-sm text-blue-800">Planejada</span>
           <span class="px-3 py-1 bg-green-100 border border-green-300 rounded text-sm text-green-800">Concluída</span>
         </div>
         <div class="flex items-center gap-4">
@@ -77,7 +77,7 @@ export const FluxogramaTab = {
           @dragleave.prevent="dragOverSem = null"
           @drop="onDrop($event, sem)"
         >
-          <div class="flex justify-between items-center mb-2 gap-2">
+          <div class="flex justify-between items-center mb-1 gap-2">
             <h2 class="font-bold text-lg text-gray-700">
               {{ sem === 10 && maxSemesters === 10 ? 'Optativas / Repositório' : sem + 'º Período' }}
             </h2>
@@ -100,12 +100,25 @@ export const FluxogramaTab = {
             :key="course.id"
             :course="course"
             :is-dragged="draggedCourse && draggedCourse.id === course.id"
+            :is-hovered="hoveredCourseId === course.id"
+            :highlight="relatedCourseIds.get(course.id)"
             @dragstart="onDragStart($event, course)"
             @dragend="onDragEnd"
             @cycle-status="cycleStatus(course)"
+            @open-details="openDetails(course)"
+            @hover-start="setHoveredCourse(course.id)"
+            @hover-end="setHoveredCourse(null)"
           />
         </div>
       </div>
+
+      <CourseDetailsModal
+        :open="!!detailsCourse"
+        :course="detailsCourse"
+        :prereq-names="detailsCourse ? resolveCourseNames(detailsCourse.prereqs) : []"
+        :coreq-names="detailsCourse ? resolveCourseNames(detailsCourse.coreqs) : []"
+        @close="closeDetails"
+      />
     </div>
   `,
 };

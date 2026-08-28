@@ -17,6 +17,8 @@ export function useCourses() {
 
   const draggedCourse = ref(null);
   const dragOverSem = ref(null);
+  const hoveredCourseId = ref(null);
+  const detailsCourse = ref(null);
 
   onMounted(async () => {
     const { courses: loaded, offline } = await loadCourses();
@@ -73,9 +75,7 @@ export function useCourses() {
   });
 
   const cycleStatus = (course) => {
-    const statuses = ['Pendente', 'Planejada', 'Concluída'];
-    const idx = statuses.indexOf(course.status);
-    course.status = statuses[(idx + 1) % statuses.length];
+    course.status = course.status === 'Concluída' ? 'Pendente' : 'Concluída';
   };
 
   // Marks every course currently visible in this semester column (i.e.
@@ -100,6 +100,38 @@ export function useCourses() {
     draggedCourse.value = null;
     dragOverSem.value = null;
   };
+
+  // Maps every course related to the hovered one to how it's related, so
+  // cards can be highlighted by relation type: courses it requires, its
+  // co-requisites, and courses it unlocks once completed.
+  const relatedCourseIds = computed(() => {
+    const map = new Map();
+    const course = courses.find((c) => c.id === hoveredCourseId.value);
+    if (!course) return map;
+
+    (course.prereqs || []).forEach((id) => map.set(id, 'prereq'));
+    (course.coreqs || []).forEach((id) => map.set(id, 'coreq'));
+    courses.forEach((c) => {
+      if ((c.prereqs || []).includes(course.id)) map.set(c.id, 'libera');
+    });
+
+    return map;
+  });
+
+  const setHoveredCourse = (courseId) => {
+    hoveredCourseId.value = courseId;
+  };
+
+  const openDetails = (course) => {
+    detailsCourse.value = course;
+  };
+
+  const closeDetails = () => {
+    detailsCourse.value = null;
+  };
+
+  const resolveCourseNames = (ids) =>
+    (ids || []).map((id) => courses.find((c) => c.id === id)?.name || id);
 
   const checkMove = (course, targetSem) => {
     const errors = [];
@@ -187,5 +219,12 @@ export function useCourses() {
     onDragStart,
     onDragEnd,
     onDrop,
+    hoveredCourseId,
+    relatedCourseIds,
+    setHoveredCourse,
+    detailsCourse,
+    openDetails,
+    closeDetails,
+    resolveCourseNames,
   };
 }

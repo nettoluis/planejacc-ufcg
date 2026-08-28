@@ -1,21 +1,41 @@
+const HIGHLIGHT_RING = {
+  prereq: 'ring-2 ring-blue-500',
+  coreq: 'ring-2 ring-purple-500',
+  libera: 'ring-2 ring-green-500',
+};
+
 export const CourseCard = {
   props: {
     course: { type: Object, required: true },
     isDragged: { type: Boolean, default: false },
+    isHovered: { type: Boolean, default: false },
+    highlight: { type: String, default: null },
   },
-  emits: ['dragstart', 'dragend', 'cycle-status'],
+  emits: ['dragstart', 'dragend', 'cycle-status', 'open-details', 'hover-start', 'hover-end'],
+  computed: {
+    highlightClass() {
+      if (this.isHovered) return 'ring-2 ring-yellow-400';
+      if (this.highlight) return HIGHLIGHT_RING[this.highlight] || '';
+      return '';
+    },
+  },
   template: `
     <div
       draggable="true"
       @dragstart="$emit('dragstart', $event)"
       @dragend="$emit('dragend')"
-      class="relative p-3 rounded shadow-sm border transition-all duration-200 cursor-grab active:cursor-grabbing hover:shadow-md"
-      :class="{
-        'bg-white border-gray-300': course.status === 'Pendente',
-        'bg-blue-50 border-blue-300': course.status === 'Planejada',
-        'bg-green-50 border-green-300': course.status === 'Concluída',
-        'opacity-50 scale-95': isDragged
-      }"
+      @click="$emit('open-details')"
+      @mouseenter="$emit('hover-start')"
+      @mouseleave="$emit('hover-end')"
+      class="relative p-3 rounded shadow-sm border transition-all duration-200 cursor-pointer active:cursor-grabbing hover:shadow-md"
+      :class="[
+        {
+          'bg-white border-gray-300': course.status === 'Pendente',
+          'bg-green-50 border-green-300': course.status === 'Concluída',
+          'opacity-50 scale-95': isDragged
+        },
+        highlightClass
+      ]"
     >
       <div class="flex justify-between items-start mb-2">
         <h3 class="font-bold text-sm leading-tight text-gray-800 pr-2">{{ course.name }}</h3>
@@ -25,13 +45,11 @@ export const CourseCard = {
           class="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-1.5 rounded shadow-sm border transition-colors hover:brightness-95 flex items-center gap-1"
           :class="{
             'bg-gray-100 text-gray-600 border-gray-300': course.status === 'Pendente',
-            'bg-blue-200 text-blue-800 border-blue-400': course.status === 'Planejada',
             'bg-green-200 text-green-900 border-green-400': course.status === 'Concluída'
           }"
           title="Clique para mudar o status"
         >
           <span v-if="course.status === 'Pendente'">⏳ Pendente</span>
-          <span v-else-if="course.status === 'Planejada'">📅 Planejada</span>
           <span v-else>✅ Concluída</span>
         </button>
       </div>

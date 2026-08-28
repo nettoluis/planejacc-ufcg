@@ -8,11 +8,12 @@ const EQUIVALENCIAS_TAB = 'equivalências';
 // tied to a period, not individual named courses — they're not displayed.
 const PLACEHOLDER_ELECTIVE_RE = /^optativa\s+\d+$/i;
 
-// "ATIVIDADES COMPLEMENTARES FLEXIVEIS" / "...DE EXTENSAO" are credit-bucket
-// placeholders for the same hours the "Horas Complementares" tab already
-// tracks via the activities doc — showing them as course cards too would
-// double-track the same credits, so they're excluded here as well.
-const PLACEHOLDER_COMPLEMENTAR_RE = /^atividades complementares/i;
+// "ATIVIDADES COMPLEMENTARES FLEXIVEIS" / "...DE EXTENSAO" ARE shown as
+// regular course cards: the official academic system integralizes
+// complementary/flexible hours as two distinct disciplines, exactly like
+// this sheet models them. The "Horas Complementares" tab is the tool for
+// accumulating toward each one's minimum; marking the corresponding
+// discipline card Concluída is what actually integralizes the credits.
 
 function parseCodes(field) {
   if (field === null || field === undefined) return [];
@@ -50,10 +51,7 @@ export async function fetchGradeCourses() {
     .filter((c) => c.codigo);
 
   const active = parsed.filter(
-    (c) =>
-      c.tipo !== '---' &&
-      !PLACEHOLDER_ELECTIVE_RE.test(c.disciplina || '') &&
-      !PLACEHOLDER_COMPLEMENTAR_RE.test(c.disciplina || '')
+    (c) => c.tipo !== '---' && !PLACEHOLDER_ELECTIVE_RE.test(c.disciplina || '')
   );
   const legacy = parsed.filter((c) => c.tipo === '---');
 
