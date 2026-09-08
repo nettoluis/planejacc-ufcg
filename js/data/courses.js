@@ -59,7 +59,9 @@ function withOfflineDefaults(course) {
     bibliografiaBasica: course.bibliografiaBasica || [],
     bibliografiaComplementar: course.bibliografiaComplementar || [],
     status: 'Pendente',
-    customSem: course.sem || 10,
+    // null means "unscheduled" — the course lives in the electives
+    // repository column rather than a numbered period.
+    customSem: course.sem ?? null,
   };
 }
 

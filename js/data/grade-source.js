@@ -1,4 +1,5 @@
 import { fetchGvizSheet } from './gviz.js';
+import { normalizeString } from '../util/normalize.js';
 
 const GRADE_SHEET_ID = '1eMhue4891tuD8pUGYlB2fWpWXDtbGE2IEyNEgy28pHM';
 const GRADE_TAB = 'grade2023';
@@ -18,6 +19,27 @@ const PLACEHOLDER_ELECTIVE_RE = /^optativa\s+\d+$/i;
 function parseCodes(field) {
   if (field === null || field === undefined) return [];
   return String(field).trim().split(/\s+/).filter(Boolean);
+}
+
+// The sheet sometimes lists the same course twice under two different
+// codigos (e.g. a recodification that never got cleaned up) — keep the
+// first occurrence and fold the other's reqs/trilhas into it rather than
+// showing the same course twice.
+function dedupeByName(rows) {
+  const byName = new Map();
+  const result = [];
+  for (const row of rows) {
+    const key = normalizeString(row.disciplina || '');
+    const existing = byName.get(key);
+    if (!existing) {
+      byName.set(key, row);
+      result.push(row);
+      continue;
+    }
+    if (!existing.reqs.length && row.reqs.length) existing.reqs = row.reqs;
+    if (!existing.trilhas.length && row.trilhas.length) existing.trilhas = row.trilhas;
+  }
+  return result;
 }
 
 // Fetches the live curriculum structure: course code, period, type,
@@ -50,8 +72,8 @@ export async function fetchGradeCourses() {
     })
     .filter((c) => c.codigo);
 
-  const active = parsed.filter(
-    (c) => c.tipo !== '---' && !PLACEHOLDER_ELECTIVE_RE.test(c.disciplina || '')
+  const active = dedupeByName(
+    parsed.filter((c) => c.tipo !== '---' && !PLACEHOLDER_ELECTIVE_RE.test(c.disciplina || ''))
   );
   const legacy = parsed.filter((c) => c.tipo === '---');
 

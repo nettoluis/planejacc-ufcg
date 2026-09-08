@@ -13,8 +13,8 @@ const App = {
     return { tab, modalState, closeModal };
   },
   template: `
-    <div class="min-h-screen flex flex-col">
-      <header class="bg-blue-900 text-white shadow-md">
+    <div class="h-screen flex flex-col overflow-hidden">
+      <header class="bg-blue-900 text-white shadow-md shrink-0">
         <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row items-center justify-between">
           <div class="flex items-center gap-3">
             <img src="./assets/ufcg_logo.png" alt="Logo UFCG" class="h-10 w-auto">
@@ -37,7 +37,7 @@ const App = {
         </div>
       </header>
 
-      <main class="flex-1 max-w-full mx-auto p-4 w-full">
+      <main class="flex-1 min-h-0 max-w-full mx-auto p-4 w-full overflow-y-auto flex flex-col">
         <FluxogramaTab v-if="tab === 'fluxograma'" />
         <HorasTab v-if="tab === 'horas'" />
       </main>

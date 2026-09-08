@@ -4,11 +4,19 @@ import { normalizeString } from '../util/normalize.js';
 import { useModal } from './useModal.js';
 import { loadSession, saveSession } from '../data/session-storage.js';
 
+// Electives without a fixed period (the vast majority) live in a
+// separate, non-numbered repository column instead of being force-fit
+// into a numbered period — it's always rendered last, independent of how
+// many real periods currently exist.
+const REPO = 'repo';
+
+const isInRepo = (course) => course.customSem === null || course.customSem === undefined;
+
 export function useCourses() {
   const { showModal } = useModal();
 
   const courses = reactive([]);
-  const maxSemesters = ref(10);
+  const maxSemesters = ref(9);
   const isLoading = ref(true);
   const fetchError = ref(false);
 
@@ -26,7 +34,7 @@ export function useCourses() {
     const { courses: loaded, offline } = await loadCourses();
 
     if (saved?.maxSemesters) {
-      maxSemesters.value = Math.max(10, saved.maxSemesters);
+      maxSemesters.value = Math.max(9, saved.maxSemesters);
     }
 
     const overrides = saved?.courseOverrides || {};
@@ -57,32 +65,70 @@ export function useCourses() {
     );
   });
 
+  const matchesCommonFilters = (c) => {
+    if (searchQuery.value) {
+      const q = normalizeString(searchQuery.value);
+      if (!normalizeString(c.name).includes(q) && !normalizeString(c.id).includes(q)) {
+        return false;
+      }
+    }
+
+    if (filterStatus.value === 'disponiveis' && c.status === 'Pendente') {
+      if (c.prereqs && c.prereqs.length > 0) {
+        const canTake = c.prereqs.every((reqId) => {
+          const req = courses.find((x) => x.id === reqId);
+          return req && req.status === 'Concluída';
+        });
+        if (!canTake) return false;
+      }
+    }
+
+    return true;
+  };
+
+  // The repository is always the last column, after every real period.
+  const columns = computed(() => [
+    ...Array.from({ length: maxSemesters.value }, (_, i) => i + 1),
+    REPO,
+  ]);
+
+  const addSemester = () => {
+    maxSemesters.value++;
+  };
+
+  // True when no course (regardless of the active search/status/trilha
+  // filters) is actually placed in this period — as opposed to just
+  // appearing empty because a filter is hiding its courses.
+  const isSemesterEmpty = (sem) => sem !== REPO && !courses.some((c) => c.customSem === sem);
+
+  // Removes an empty real period, shifting every later period's courses
+  // down by one so period numbers stay contiguous. Keeps at least one
+  // period around.
+  const removeSemester = (sem) => {
+    if (!isSemesterEmpty(sem) || maxSemesters.value <= 1) return;
+
+    courses.forEach((c) => {
+      if (typeof c.customSem === 'number' && c.customSem > sem) {
+        c.customSem -= 1;
+      }
+    });
+    maxSemesters.value--;
+  };
+
+  // sem is either a number (a real period) or REPO (the electives
+  // repository column).
   const getCoursesBySem = (sem) => {
     return courses.filter((c) => {
-      if (c.customSem !== sem) return false;
+      const col = isInRepo(c) ? REPO : c.customSem;
+      if (col !== sem) return false;
+      if (!matchesCommonFilters(c)) return false;
 
-      if (searchQuery.value) {
-        const q = normalizeString(searchQuery.value);
-        if (!normalizeString(c.name).includes(q) && !normalizeString(c.id).includes(q)) {
-          return false;
-        }
-      }
-
-      if (filterStatus.value === 'disponiveis' && c.status === 'Pendente') {
-        if (c.prereqs && c.prereqs.length > 0) {
-          const canTake = c.prereqs.every((reqId) => {
-            const req = courses.find((x) => x.id === reqId);
-            return req && req.status === 'Concluída';
-          });
-          if (!canTake) return false;
-        }
-      }
-
-      // The trilha filter only narrows down electives — obrigatórias,
-      // complementar hours and TCC always stay visible regardless of trilha.
+      // The trilha filter only narrows down the electives repository —
+      // once a course is placed in a period (including electives moved
+      // out of the repository), it's no longer affected by it.
       if (
+        sem === REPO &&
         filterTrilha.value &&
-        c.tipo === 'Optativa' &&
         !(c.trilhas || []).includes(filterTrilha.value)
       ) {
         return false;
@@ -116,16 +162,22 @@ export function useCourses() {
     course.status = course.status === 'Concluída' ? 'Pendente' : 'Concluída';
   };
 
-  // Marks every course currently visible in this semester column (i.e.
-  // respecting the active search/filter) as Concluída in one action.
-  const markSemesterConcluded = (sem) => {
-    getCoursesBySem(sem).forEach((c) => {
-      c.status = 'Concluída';
-    });
+  // True once every course currently visible in this column (i.e.
+  // respecting the active search/filter) is Concluída — mirrors the
+  // Pendente/Concluída toggle on an individual CourseCard, but for the
+  // whole column's "Marcar Tudo" button.
+  const isSemesterConcluded = (sem) => {
+    const visible = getCoursesBySem(sem);
+    return visible.length > 0 && visible.every((c) => c.status === 'Concluída');
   };
 
-  const addSemester = () => {
-    maxSemesters.value++;
+  // Toggles every course currently visible in this column between
+  // Concluída and Pendente in one action.
+  const toggleSemesterConcluded = (sem) => {
+    const status = isSemesterConcluded(sem) ? 'Pendente' : 'Concluída';
+    getCoursesBySem(sem).forEach((c) => {
+      c.status = status;
+    });
   };
 
   const onDragStart = (event, course) => {
@@ -174,10 +226,14 @@ export function useCourses() {
   const checkMove = (course, targetSem) => {
     const errors = [];
 
+    // Dragging a course back into the repository just unschedules it —
+    // there's no period to validate ordering against.
+    if (targetSem === REPO) return errors;
+
     if (course.prereqs && course.prereqs.length > 0) {
       for (const reqId of course.prereqs) {
         const req = courses.find((c) => c.id === reqId);
-        if (req && req.customSem >= targetSem) {
+        if (req && !isInRepo(req) && req.customSem >= targetSem) {
           errors.push(
             `Pré-requisito "${req.name}" não atendido (está no ${req.customSem}º período; precisa ser anterior).`
           );
@@ -188,7 +244,7 @@ export function useCourses() {
     if (course.coreqs && course.coreqs.length > 0) {
       for (const reqId of course.coreqs) {
         const req = courses.find((c) => c.id === reqId);
-        if (req && req.customSem > targetSem) {
+        if (req && !isInRepo(req) && req.customSem > targetSem) {
           errors.push(
             `Co-requisito "${req.name}" não atendido (está no ${req.customSem}º período; precisa estar no mesmo ou anterior).`
           );
@@ -196,7 +252,10 @@ export function useCourses() {
       }
     }
 
+    // Unscheduled dependents (still sitting in the repository) impose no
+    // ordering constraint — only ones already placed in a period do.
     for (const other of courses) {
+      if (isInRepo(other)) continue;
       if (other.prereqs && other.prereqs.includes(course.id) && other.customSem <= targetSem) {
         errors.push(
           `A disciplina "${other.name}" (que está no ${other.customSem}º período) exige que esta seja cursada antes dela.`
@@ -217,8 +276,9 @@ export function useCourses() {
     if (!draggedCourse.value) return;
 
     const course = draggedCourse.value;
+    const currentCol = isInRepo(course) ? REPO : course.customSem;
 
-    if (course.customSem === targetSem) {
+    if (currentCol === targetSem) {
       draggedCourse.value = null;
       return;
     }
@@ -226,13 +286,14 @@ export function useCourses() {
     const errors = checkMove(course, targetSem);
 
     if (errors.length > 0) {
-      showModal(`Não é possível mover "${course.name}" para o ${targetSem}º período.`, {
+      const targetLabel = targetSem === REPO ? 'o repositório de optativas' : `o ${targetSem}º período`;
+      showModal(`Não é possível mover "${course.name}" para ${targetLabel}.`, {
         title: 'Movimento inválido',
         items: errors,
         variant: 'warning',
       });
     } else {
-      course.customSem = targetSem;
+      course.customSem = targetSem === REPO ? null : targetSem;
     }
 
     draggedCourse.value = null;
@@ -240,7 +301,8 @@ export function useCourses() {
 
   return {
     courses,
-    maxSemesters,
+    columns,
+    repoColumn: REPO,
     isLoading,
     fetchError,
     searchQuery,
@@ -250,8 +312,11 @@ export function useCourses() {
     getCoursesBySem,
     stats,
     cycleStatus,
-    markSemesterConcluded,
+    isSemesterConcluded,
+    toggleSemesterConcluded,
     addSemester,
+    isSemesterEmpty,
+    removeSemester,
     draggedCourse,
     dragOverSem,
     onDragStart,

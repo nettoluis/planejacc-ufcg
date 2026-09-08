@@ -8,7 +8,7 @@ export const FluxogramaTab = {
     return useCourses();
   },
   template: `
-    <div class="h-full flex flex-col">
+    <div class="h-full min-h-0 flex flex-col">
       <div v-if="isLoading" class="mb-4 text-sm text-blue-700 bg-blue-50 p-2 rounded flex items-center gap-2">
         <svg class="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
@@ -67,9 +67,9 @@ export const FluxogramaTab = {
         </div>
       </div>
 
-      <div class="board-container h-full">
+      <div class="board-container flex-1 min-h-0">
         <div
-          v-for="sem in maxSemesters"
+          v-for="sem in columns"
           :key="sem"
           class="semester-col shadow-sm border-2"
           :class="{'bg-blue-50 border-blue-400 border-dashed': dragOverSem === sem, 'bg-gray-200 border-gray-300 border-solid': dragOverSem !== sem}"
@@ -77,38 +77,49 @@ export const FluxogramaTab = {
           @dragleave.prevent="dragOverSem = null"
           @drop="onDrop($event, sem)"
         >
-          <div class="flex justify-between items-center mb-1 gap-2">
+          <div class="flex justify-between items-center mb-1 gap-2 shrink-0">
             <h2 class="font-bold text-lg text-gray-700">
-              {{ sem === 10 && maxSemesters === 10 ? 'Optativas / Repositório' : sem + 'º Período' }}
+              {{ sem === repoColumn ? 'Optativas / Repositório' : sem + 'º Período' }}
             </h2>
             <button
               v-if="getCoursesBySem(sem).length > 0"
-              @click="markSemesterConcluded(sem)"
-              title="Marcar todas as disciplinas visíveis deste período como concluídas"
-              class="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded border border-green-400 bg-green-50 text-green-700 hover:bg-green-100 transition-colors"
+              @click="toggleSemesterConcluded(sem)"
+              :title="isSemesterConcluded(sem) ? 'Desmarcar todas as disciplinas visíveis deste período' : 'Marcar todas as disciplinas visíveis deste período como concluídas'"
+              class="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded border transition-colors"
+              :class="isSemesterConcluded(sem) ? 'border-gray-400 bg-gray-50 text-gray-700 hover:bg-gray-100' : 'border-green-400 bg-green-50 text-green-700 hover:bg-green-100'"
             >
-              ✓ Marcar Tudo
+              {{ isSemesterConcluded(sem) ? '✕ Desmarcar Tudo' : '✓ Marcar Tudo' }}
+            </button>
+            <button
+              v-if="isSemesterEmpty(sem)"
+              @click="removeSemester(sem)"
+              title="Remover este período vazio"
+              class="shrink-0 text-[10px] uppercase tracking-wider font-bold px-2 py-1 rounded border border-red-400 bg-red-50 text-red-700 hover:bg-red-100 transition-colors"
+            >
+              🗑 Remover Período
             </button>
           </div>
 
-          <div v-if="getCoursesBySem(sem).length === 0" class="text-sm text-gray-400 italic text-center mt-2">
-            Nenhuma disciplina visível
-          </div>
+          <div class="flex-1 min-h-0 overflow-y-auto flex flex-col gap-3 pr-1">
+            <div v-if="getCoursesBySem(sem).length === 0" class="text-sm text-gray-400 italic text-center mt-2">
+              Nenhuma disciplina visível
+            </div>
 
-          <CourseCard
-            v-for="course in getCoursesBySem(sem)"
-            :key="course.id"
-            :course="course"
-            :is-dragged="draggedCourse && draggedCourse.id === course.id"
-            :is-hovered="hoveredCourseId === course.id"
-            :highlight="relatedCourseIds.get(course.id)"
-            @dragstart="onDragStart($event, course)"
-            @dragend="onDragEnd"
-            @cycle-status="cycleStatus(course)"
-            @open-details="openDetails(course)"
-            @hover-start="setHoveredCourse(course.id)"
-            @hover-end="setHoveredCourse(null)"
-          />
+            <CourseCard
+              v-for="course in getCoursesBySem(sem)"
+              :key="course.id"
+              :course="course"
+              :is-dragged="draggedCourse && draggedCourse.id === course.id"
+              :is-hovered="hoveredCourseId === course.id"
+              :highlight="relatedCourseIds.get(course.id)"
+              @dragstart="onDragStart($event, course)"
+              @dragend="onDragEnd"
+              @cycle-status="cycleStatus(course)"
+              @open-details="openDetails(course)"
+              @hover-start="setHoveredCourse(course.id)"
+              @hover-end="setHoveredCourse(null)"
+            />
+          </div>
         </div>
       </div>
 
