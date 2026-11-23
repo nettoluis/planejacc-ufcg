@@ -65,6 +65,15 @@ export const FluxogramaTab = {
             <option v-for="trilha in availableTrilhas" :key="trilha" :value="trilha">{{ trilha }}</option>
           </select>
         </div>
+
+        <label
+          v-if="hasForecastData"
+          class="flex items-center gap-2 w-full md:w-auto text-sm font-semibold text-gray-700 whitespace-nowrap cursor-pointer select-none"
+          title="Mostra no repositório apenas as optativas com previsão de oferta nos próximos períodos"
+        >
+          <input type="checkbox" v-model="filterPrevisao" class="h-4 w-4 accent-blue-600">
+          Apenas optativas com previsão de oferta
+        </label>
       </div>
 
       <div class="board-container flex-1 min-h-0">
