@@ -23,6 +23,7 @@ export function useCourses() {
   const searchQuery = ref('');
   const filterStatus = ref('geral');
   const filterTrilha = ref('');
+  const filterPrevisao = ref(false);
 
   const draggedCourse = ref(null);
   const dragOverSem = ref(null);
@@ -134,9 +135,22 @@ export function useCourses() {
         return false;
       }
 
+      // Same scope as the trilha filter: only the repository is narrowed
+      // down to electives forecast to be offered in an upcoming term.
+      if (sem === REPO && filterPrevisao.value && !(c.forecastTerms || []).length) {
+        return false;
+      }
+
       return true;
     });
   };
+
+  // The forecast filter is only offered when the offering plan actually
+  // loaded — otherwise no course has forecast data and it would empty the
+  // repository.
+  const hasForecastData = computed(() =>
+    courses.some((c) => c.tipo === 'Optativa' && (c.forecastTerms || []).length)
+  );
 
   const availableTrilhas = computed(() => {
     const set = new Set();
@@ -308,6 +322,8 @@ export function useCourses() {
     searchQuery,
     filterStatus,
     filterTrilha,
+    filterPrevisao,
+    hasForecastData,
     availableTrilhas,
     getCoursesBySem,
     stats,

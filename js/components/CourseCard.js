@@ -68,6 +68,10 @@ export const CourseCard = {
         </span>
       </div>
 
+      <div v-if="course.forecastTerms && course.forecastTerms.length" class="text-[10px] text-emerald-700 mb-1">
+        Previsão de oferta: {{ course.forecastTerms.join(', ') }}
+      </div>
+
       <div v-if="course.termsOffered && course.termsOffered.length" class="text-[10px] text-gray-400 mb-2">
         Ofertada em: {{ course.termsOffered.slice(0, 3).join(', ') }}
       </div>
