@@ -39,6 +39,14 @@ export const FluxogramaTab = {
           <button @click="addSemester" class="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 font-semibold shadow">
             + Adicionar Período
           </button>
+          <button
+            @click="exportPlanMarkdown"
+            :disabled="isLoading"
+            title="Baixa um arquivo .md com os períodos montados e as trilhas abarcadas"
+            class="bg-white text-blue-700 border border-blue-600 px-4 py-2 rounded hover:bg-blue-50 font-semibold shadow disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            ⬇ Baixar Plano (.md)
+          </button>
         </div>
       </div>
 

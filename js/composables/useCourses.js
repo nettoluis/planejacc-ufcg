@@ -3,6 +3,7 @@ import { loadCourses } from '../data/courses.js';
 import { normalizeString } from '../util/normalize.js';
 import { useModal } from './useModal.js';
 import { loadSession, saveSession } from '../data/session-storage.js';
+import { buildPlanMarkdown, downloadTextFile } from '../util/markdown-export.js';
 
 // Electives without a fixed period (the vast majority) live in a
 // separate, non-numbered repository column instead of being force-fit
@@ -172,6 +173,14 @@ export function useCourses() {
     return { obrigatorio: req, optativo: opt };
   });
 
+  // Downloads the whole plan (periods + covered trilhas) as Markdown,
+  // independent of the filters currently applied on screen.
+  const exportPlanMarkdown = () => {
+    const md = buildPlanMarkdown(courses, stats.value);
+    const date = new Date().toISOString().slice(0, 10);
+    downloadTextFile(`planejamento-cc-ufcg-${date}.md`, md);
+  };
+
   const cycleStatus = (course) => {
     course.status = course.status === 'Concluída' ? 'Pendente' : 'Concluída';
   };
@@ -327,6 +336,7 @@ export function useCourses() {
     availableTrilhas,
     getCoursesBySem,
     stats,
+    exportPlanMarkdown,
     cycleStatus,
     isSemesterConcluded,
     toggleSemesterConcluded,
